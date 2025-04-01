@@ -163,6 +163,24 @@ def get_peft_model_state_dict(
                 )
             to_return["base_model.vera_A." + adapter_name] = state_dict["base_model.vera_A." + adapter_name]
             to_return["base_model.vera_B." + adapter_name] = state_dict["base_model.vera_B." + adapter_name]
+    elif config.peft_type == PeftType.MURA:
+        mura_prefix = PEFT_TYPE_TO_PREFIX_MAPPING[config.peft_type]
+        bias = config.bias
+        if bias == "none":
+            to_return = {k: state_dict[k] for k in state_dict if mura_prefix in k}
+        elif bias == "all":
+            to_return = {k: state_dict[k] for k in state_dict if mura_prefix in k or "bias" in k}
+        elif bias == "lora_only":
+            to_return = {}
+            for k in state_dict:
+                if mura_prefix in k:
+                    to_return[k] = state_dict[k]
+                    bias_name = k.split(mura_prefix)[0] + "bias"
+                    if bias_name in state_dict:
+                        to_return[bias_name] = state_dict[bias_name]
+        else:
+            raise NotImplementedError
+        to_return = {k: v for k, v in to_return.items() if ((mura_prefix in k and adapter_name in k) or ("bias" in k))}
     elif config.peft_type == PeftType.XLORA:
         to_return = {k: state_dict[k] for k in state_dict if "internal_xlora_classifier" in k}
     elif config.peft_type == PeftType.VBLORA:
@@ -417,6 +435,8 @@ def set_peft_model_state_dict(
                     " PRNG initialisation to restore these projections using `config.projection_prng_key`, which may"
                     " not be accurate on all system configurations."
                 )
+        elif config.peft_type == PeftType.MURA:
+            pass
         elif config.peft_type == PeftType.LORA:
             # Here we take care of a refactor of DoRA which changed lora_magnitude_vector from a ParameterDict to a
             # ModuleDict with a DoraLayer instance. The old parameter is now the "weight" attribute of that layer.

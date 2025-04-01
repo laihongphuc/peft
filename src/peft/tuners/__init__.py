@@ -42,6 +42,7 @@ from .prompt_tuning import PromptEmbedding, PromptTuningConfig, PromptTuningInit
 from .trainable_tokens import TrainableTokensConfig, TrainableTokensModel
 from .vblora import VBLoRAConfig, VBLoRAModel
 from .vera import VeraConfig, VeraModel
+from .mura import MuraConfig, MuraModel
 from .xlora import XLoraConfig, XLoraModel
 
 
@@ -95,6 +96,8 @@ __all__ = [
     "VBLoRAModel",
     "VeraConfig",
     "VeraModel",
+    "MuraConfig",
+    "MuraModel",
     "XLoraConfig",
     "XLoraModel",
     "get_eva_state_dict",

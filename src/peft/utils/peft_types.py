@@ -37,6 +37,7 @@ class PeftType(str, enum.Enum):
     - POLY
     - LN_TUNING
     - VERA
+    - MURA
     - FOURIERFT
     - HRA
     - BONE
@@ -64,6 +65,7 @@ class PeftType(str, enum.Enum):
     CPT = "CPT"
     BONE = "BONE"
     TRAINABLE_TOKENS = "TRAINABLE_TOKENS"
+    MURA = "MURA"
 
 
 class TaskType(str, enum.Enum):
