@@ -181,13 +181,13 @@ class MuraModel(BaseTuner):
     @staticmethod
     def _create_new_module(mura_config, adapter_name, target, **kwargs):
         # avoid eager bnb import
-        if is_bnb_available():
-            import bitsandbytes as bnb
+        # if is_bnb_available():
+        #     import bitsandbytes as bnb
 
-            from .bnb import Linear8bitLt
+        #     from .bnb import Linear8bitLt
 
-        if is_bnb_4bit_available():
-            from .bnb import Linear4bit
+        # if is_bnb_4bit_available():
+        #     from .bnb import Linear4bit
 
         bias = kwargs.pop("bias", False)
         loaded_in_8bit = kwargs.get("loaded_in_8bit", False)
@@ -346,7 +346,7 @@ class MuraModel(BaseTuner):
         new_adapter = None
         for key in key_list:
             _, target, _ = _get_submodules(self.model, key)
-            if isinstance(target, VeraLayer):
+            if isinstance(target, MuraLayer):
                 target.delete_adapter(adapter_name)
                 if new_adapter is None:
                     new_adapter = target.active_adapter[:]
