@@ -198,26 +198,28 @@ class MuraModel(BaseTuner):
         else:
             target_base_layer = target
 
-        if loaded_in_8bit and isinstance(target_base_layer, bnb.nn.Linear8bitLt):
-            eightbit_kwargs = kwargs.copy()
-            eightbit_kwargs.update(
-                {
-                    "has_fp16_weights": target_base_layer.state.has_fp16_weights,
-                    "threshold": target_base_layer.state.threshold,
-                    "index": target_base_layer.index,
-                }
-            )
-            return Linear8bitLt(target, adapter_name, **eightbit_kwargs)
-        elif loaded_in_4bit and isinstance(target_base_layer, bnb.nn.Linear4bit):
-            fourbit_kwargs = kwargs.copy()
-            fourbit_kwargs.update(
-                {
-                    "compute_dtype": target_base_layer.compute_dtype,
-                    "compress_statistics": target_base_layer.weight.compress_statistics,
-                    "quant_type": target_base_layer.weight.quant_type,
-                }
-            )
-            return Linear4bit(target, adapter_name, **fourbit_kwargs)
+        if loaded_in_8bit:
+            # eightbit_kwargs = kwargs.copy()
+            # eightbit_kwargs.update(
+            #     {
+            #         "has_fp16_weights": target_base_layer.state.has_fp16_weights,
+            #         "threshold": target_base_layer.state.threshold,
+            #         "index": target_base_layer.index,
+            #     }
+            # )
+            # return Linear8bitLt(target, adapter_name, **eightbit_kwargs)
+            raise NotImplementedError("8-bit MURA is not implemented")
+        elif loaded_in_4bit:
+            # fourbit_kwargs = kwargs.copy()
+            # fourbit_kwargs.update(
+            #     {
+            #         "compute_dtype": target_base_layer.compute_dtype,
+            #         "compress_statistics": target_base_layer.weight.compress_statistics,
+            #         "quant_type": target_base_layer.weight.quant_type,
+            #     }
+            # )
+            # return Linear4bit(target, adapter_name, **fourbit_kwargs)
+            raise NotImplementedError("4-bit MURA is not implemented")
         elif isinstance(target_base_layer, torch.nn.Linear):
             if kwargs["fan_in_fan_out"]:
                 warnings.warn(
