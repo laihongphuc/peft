@@ -269,7 +269,7 @@ class Linear(nn.Module, MuraLayer):
                 cur_mat = (A@B)[None, None, :, :]
                 cur_mat = torch.nn.functional.interpolate(cur_mat, scale_factor=2**i, mode='bilinear').squeeze()
             output_tensor += cur_mat 
-        output_tensor = transpose(output_tensor, self.fan_in_fan_out) * self.scaling[adapter]
+        output_tensor = transpose(output_tensor, not self.fan_in_fan_out) * self.scaling[adapter]
 
 
         if cast_to_fp32:
@@ -310,8 +310,8 @@ class Linear(nn.Module, MuraLayer):
                         cur_mat = (A@B)[None, None, :, :]
                         cur_mat = torch.nn.functional.interpolate(cur_mat, scale_factor=2**i, mode='bilinear').squeeze()
                     new_weight += cur_mat
-                new_weight = transpose(new_weight, self.fan_in_fan_out) * scaling
-                result = result + F.linear(dropout(x), transpose(new_weight, self.fan_in_fan_out), bias=None)
+                new_weight = transpose(new_weight, not self.fan_in_fan_out) * scaling
+                result = result + F.linear(dropout(x), new_weight, bias=None)
                 
             result = result.to(torch_result_dtype)
             
