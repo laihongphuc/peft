@@ -316,7 +316,8 @@ def _insert_adapter_name_into_state_dict(
             suffix = key.split(parameter_prefix)[1]
             if "." in suffix:
                 suffix_to_replace = ".".join(suffix.split(".")[1:])
-                key = key.replace(suffix_to_replace, f"{adapter_name}.{suffix_to_replace}")
+                # key = key.replace(suffix_to_replace, f"{adapter_name}.{suffix_to_replace}")
+                key = key.rsplit(suffix_to_replace, 1)[0] + f"{adapter_name}.{suffix_to_replace}"
             else:
                 key = f"{key}.{adapter_name}"
             peft_model_state_dict[key] = val
@@ -369,7 +370,7 @@ def set_peft_model_state_dict(
 
                 store_key = f"{name}.{key_map.get(k, k)}"
                 lookup_key = f"{name}.{k_no_adapter}"
-
+                
                 state_dict[store_key] = peft_model_state_dict[lookup_key]
 
                 # delete the old key from the previous `state_dict = peft_model_state_dict` statement.
@@ -409,11 +410,9 @@ def set_peft_model_state_dict(
                     # delete the topk_indices and topk_weights from the state_dict
                     del state_dict[k]
                     del state_dict[k.replace("_topk_indices", "_topk_weights")]
-
         peft_model_state_dict = _insert_adapter_name_into_state_dict(
             state_dict, adapter_name=adapter_name, parameter_prefix=parameter_prefix
         )
-
         if config.peft_type == PeftType.ADALORA:
             rank_pattern = config.rank_pattern
             if rank_pattern is not None:
