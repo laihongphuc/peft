@@ -249,8 +249,8 @@ class Linear(nn.Module, MuraLayer):
             adapter (str):
                 The name of the adapter for which the delta weight should be computed.
         """
-        device = self.lora_A_list[adapter][0].weight.device
-        dtype = self.lora_A_list[adapter][0].weight.dtype
+        device = self.lora_A_list[adapter][0].device
+        dtype = self.lora_A_list[adapter][0].dtype
 
         # In case users wants to merge the adapter weights that are in
         # (b)float16 while being on CPU, we need to cast the weights to float32, perform the merge and then cast back to
