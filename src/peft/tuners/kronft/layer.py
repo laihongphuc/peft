@@ -39,7 +39,7 @@ class KronFTLayer(BaseTunerLayer):
         else:
             raise ValueError(f"Unsupported layer type {type(base_layer)}")
 
-    def update_layer(self, adapter_name, n_frequency, n_pack, scaling, init_weights, random_loc_seed):
+    def update_layer(self, adapter_name, n_frequency, n_pack, scaling, init_weights, init_eye, random_loc_seed):
         assert n_frequency % (n_pack * n_pack) == 0, "n_frequency must be divisible by n_pack * n_pack"
         if n_frequency <= 0:
             raise ValueError(f"`n_frequency` should be a positive integer value but the value passed is {n_frequency}")
@@ -66,9 +66,14 @@ class KronFTLayer(BaseTunerLayer):
         self.fourierft_spectrum[adapter_name] = nn.ParameterList(
             [nn.Parameter(torch.randn(n_frequency // (n_pack * n_pack)), requires_grad=True) for _ in range(n_pack * n_pack)]
         )
-        self.fourierft_B_list[adapter_name] = nn.ParameterList(
-            [nn.Parameter(torch.zeros(n_pack, n_pack), requires_grad=True) for _ in range(n_pack * n_pack)]
-        )
+        if init_eye:
+            self.fourierft_B_list[adapter_name] = nn.ParameterList(
+                [nn.Parameter(torch.eye(n_pack, n_pack), requires_grad=True) for _ in range(n_pack * n_pack)]
+            )
+        else:
+            self.fourierft_B_list[adapter_name] = nn.ParameterList(
+                [nn.Parameter(torch.zeros(n_pack, n_pack), requires_grad=True) for _ in range(n_pack * n_pack)]
+            )
 
         if init_weights:
             self.reset_fourier_parameters(adapter_name)
@@ -107,6 +112,7 @@ class KronFTLinear(nn.Module, KronFTLayer):
         scaling: float = 150.0,
         fan_in_fan_out: bool = False,  # Set this to True if the layer to replace stores weight like (fan_in, fan_out)
         init_weights: Union[bool, str] = False,
+        init_eye: Union[bool, str] = False,
         random_loc_seed: int = 777,
         **kwargs,
     ) -> None:
@@ -114,7 +120,7 @@ class KronFTLinear(nn.Module, KronFTLayer):
         KronFTLayer.__init__(self, base_layer, **kwargs)
         self.fan_in_fan_out = fan_in_fan_out
         self._active_adapter = adapter_name
-        self.update_layer(adapter_name, n_frequency, n_pack, scaling, init_weights, random_loc_seed)
+        self.update_layer(adapter_name, n_frequency, n_pack, scaling, init_weights, init_eye, random_loc_seed)
 
     def merge(self, safe_merge: bool = False, adapter_names: Optional[List[str]] = None) -> None:
         """

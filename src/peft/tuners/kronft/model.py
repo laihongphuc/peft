@@ -107,6 +107,7 @@ class KronFTModel(BaseTuner):
             "scaling": scaling,
             "fan_in_fan_out": kronft_config.fan_in_fan_out,
             "init_weights": kronft_config.init_weights,
+            "init_eye": kronft_config.init_eye,
             "random_loc_seed": kronft_config.random_loc_seed,
         }
         kwargs["bias"] = bias
@@ -117,6 +118,7 @@ class KronFTModel(BaseTuner):
                 n_pack,
                 scaling,
                 kronft_config.init_weights,
+                kronft_config.init_eye,
                 random_loc_seed,
             )
         else:

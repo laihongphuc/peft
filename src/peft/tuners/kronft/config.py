@@ -191,6 +191,14 @@ class KronFTConfig(PeftConfig):
             )
         },
     )
+    init_eye: bool = field(
+        default=False,
+        metadata={
+            "help": (
+                "If True, the diagonal of the weight matrix B will be initialized to 1."
+            )
+        },
+    )
 
     def __post_init__(self):
         super().__post_init__()
