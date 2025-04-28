@@ -45,6 +45,7 @@ from .vblora import VBLoRAConfig, VBLoRAModel
 from .vera import VeraConfig, VeraModel
 from .mura import MuraConfig, MuraModel
 from .xlora import XLoraConfig, XLoraModel
+from .randlora import RandLoraConfig, RandLoraModel
 
 
 __all__ = [
@@ -105,4 +106,6 @@ __all__ = [
     "XLoraModel",
     "get_eva_state_dict",
     "initialize_lora_eva_weights",
+    "RandLoraConfig",
+    "RandLoraModel",
 ]

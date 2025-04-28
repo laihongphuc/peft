@@ -99,6 +99,8 @@ from .tuners import (
     MuraModel,
     XLoraConfig,
     XLoraModel,
+    RandLoraConfig,
+    RandLoraModel,
     get_eva_state_dict,
     initialize_lora_eva_weights,
 )
@@ -196,6 +198,8 @@ __all__ = [
     "MuraModel",
     "XLoraConfig",
     "XLoraModel",
+    "RandLoraConfig",
+    "RandLoraModel",
     "bloom_model_postprocess_past_key_value",
     "cast_mixed_precision_params",
     "get_eva_state_dict",

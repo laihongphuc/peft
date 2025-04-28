@@ -163,6 +163,16 @@ def get_peft_model_state_dict(
                 )
             to_return["base_model.vera_A." + adapter_name] = state_dict["base_model.vera_A." + adapter_name]
             to_return["base_model.vera_B." + adapter_name] = state_dict["base_model.vera_B." + adapter_name]
+    elif config.peft_type == PeftType.RANDLORA:
+        to_return = {k: state_dict[k] for k in state_dict if "randlora_" in k}
+        if config.save_projection:
+            if f"base_model.randbasis_A.{adapter_name}" not in state_dict:
+                raise ValueError(
+                    "Model was initialised to not save randbasis_A and randbasis_B but config now specifies to save projection!"
+                    " Set `config.save_projection` to `False`."
+                )
+            to_return["base_model.randbasis_A." + adapter_name] = state_dict["base_model.randbasis_A." + adapter_name]
+            to_return["base_model.randbasis_B." + adapter_name] = state_dict["base_model.randbasis_B." + adapter_name]
     elif config.peft_type == PeftType.MURA:
         mura_prefix = PEFT_TYPE_TO_PREFIX_MAPPING[config.peft_type]
         bias = config.bias
@@ -435,6 +445,8 @@ def set_peft_model_state_dict(
                     " not be accurate on all system configurations."
                 )
         elif config.peft_type == PeftType.MURA:
+            pass
+        elif config.peft_type == PeftType.RANDLORA:
             pass
         elif config.peft_type == PeftType.LORA:
             # Here we take care of a refactor of DoRA which changed lora_magnitude_vector from a ParameterDict to a
