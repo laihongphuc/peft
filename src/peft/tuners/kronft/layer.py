@@ -40,7 +40,7 @@ class KronFTLayer(BaseTunerLayer):
             raise ValueError(f"Unsupported layer type {type(base_layer)}")
 
     def update_layer(self, adapter_name, n_frequency, n_pack, scaling, init_weights, init_eye, random_loc_seed):
-        assert n_frequency % (n_pack * n_pack) == 0, "n_frequency must be divisible by n_pack * n_pack"
+        assert n_frequency % (n_pack) == 0, "n_frequency must be divisible by n_pack"
         if n_frequency <= 0:
             raise ValueError(f"`n_frequency` should be a positive integer value but the value passed is {n_frequency}")
         if n_frequency > self.in_features * self.out_features:
@@ -55,24 +55,24 @@ class KronFTLayer(BaseTunerLayer):
         indices_list = [torch.randperm(
             self.out_features * self.in_features // (n_pack * n_pack),
             generator=torch.Generator().manual_seed(self.fourierft_random_loc_seed[adapter_name] + i),
-        )[:n_frequency // (n_pack * n_pack)] for i in range(n_pack * n_pack)]
+        )[:n_frequency // (n_pack )] for i in range(n_pack)]
         in_features = self.in_features // n_pack
-        # indices list: [n_pack * n_pack, n_frequency // (n_pack * n_pack)]
+        # indices list: [n_pack, n_frequency // (n_pack)]
         self.indices[adapter_name] = [torch.stack(
             [indices_list[i] // in_features, indices_list[i] % in_features], dim=0
-        ) for i in range(n_pack * n_pack)]
+        ) for i in range(n_pack)]
         self.fourierft_scaling[adapter_name] = scaling
         # Actual trainable parameters
         self.fourierft_spectrum[adapter_name] = nn.ParameterList(
-            [nn.Parameter(torch.randn(n_frequency // (n_pack * n_pack)), requires_grad=True) for _ in range(n_pack * n_pack)]
+            [nn.Parameter(torch.randn(n_frequency // (n_pack)), requires_grad=True) for _ in range(n_pack)]
         )
         if init_eye:
             self.fourierft_B_list[adapter_name] = nn.ParameterList(
-                [nn.Parameter(torch.eye(n_pack, n_pack), requires_grad=True) for _ in range(n_pack * n_pack)]
+                [nn.Parameter(torch.eye(n_pack, n_pack), requires_grad=True) for _ in range(n_pack)]
             )
         else:
             self.fourierft_B_list[adapter_name] = nn.ParameterList(
-                [nn.Parameter(torch.zeros(n_pack, n_pack), requires_grad=True) for _ in range(n_pack * n_pack)]
+                [nn.Parameter(torch.zeros(n_pack, n_pack), requires_grad=True) for _ in range(n_pack)]
             )
 
         if init_weights:
@@ -92,9 +92,9 @@ class KronFTLayer(BaseTunerLayer):
         spectrum = self.fourierft_spectrum[adapter]
         indices = [ind.to(device) for ind in self.indices[adapter]]
         n_pack = self.fourierft_n_pack[adapter]
-        dense_spectrum = [torch.zeros(self.out_features // n_pack, self.in_features // n_pack, device=device, dtype=dtype) for _ in range(n_pack * n_pack)]
+        dense_spectrum = [torch.zeros(self.out_features // n_pack, self.in_features // n_pack, device=device, dtype=dtype) for _ in range(n_pack)]
         delta_weight = 0
-        for i in range(n_pack * n_pack):
+        for i in range(n_pack):
             dense_spectrum[i][indices[i][0, :], indices[i][1, :]] = spectrum[i]
             delta_weight += torch.kron(self.fourierft_B_list[adapter][i], torch.fft.ifft2(dense_spectrum[i]).real)
         delta_weight *= self.fourierft_scaling[adapter]
