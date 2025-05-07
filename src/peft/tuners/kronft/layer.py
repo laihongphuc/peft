@@ -200,7 +200,7 @@ class KronFTLinear(nn.Module, KronFTLayer):
                 if active_adapter not in self.fourierft_spectrum.keys():
                     continue
                 
-                adapter = activate_adapter
+                adapter = active_adapter
 
                 scaling = self.fourierft_scaling[adapter]
                 spectrum = self.fourierft_spectrum[adapter]
