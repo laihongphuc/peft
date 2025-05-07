@@ -22,6 +22,7 @@ class KronFTLayer(BaseTunerLayer):
         self.fourierft_scaling = {}
         self.fourierft_spectrum = nn.ParameterDict({})
         self.indices = {}
+        self.gate_indices = {}
         self.fourierft_random_loc_seed = {}
         self.fourierft_B_list = nn.ParameterDict({})
         # Mark the weight as unmerged
@@ -74,6 +75,15 @@ class KronFTLayer(BaseTunerLayer):
             self.fourierft_B_list[adapter_name] = nn.ParameterList(
                 [nn.Parameter(torch.zeros(n_pack, n_pack), requires_grad=True) for _ in range(n_pack)]
             )
+        # Gating mechanism
+        n_gate_parameter = n_pack * self.in_features // 10
+        gate_indices = torch.randperm(
+            n_pack * self.in_features,
+            generator=torch.Generator().manual_seed(self.fourierft_random_loc_seed[adapter_name]),
+        )[:n_gate_parameter] 
+        self.gate_indices[adapter_name] = torch.stack(
+            [gate_indices // self.in_features, gate_indices % self.in_features], dim=0
+        )
 
         if init_weights:
             self.reset_fourier_parameters(adapter_name)
@@ -96,7 +106,8 @@ class KronFTLayer(BaseTunerLayer):
         delta_weight = 0
         for i in range(n_pack):
             dense_spectrum[i][indices[i][0, :], indices[i][1, :]] = spectrum[i]
-            delta_weight += torch.kron(self.fourierft_B_list[adapter][i], torch.fft.ifft2(dense_spectrum[i]).real)
+            # delta_weight += torch.kron(self.fourierft_B_list[adapter][i], torch.fft.ifft2(dense_spectrum[i]).real)
+            delta_weight += torch.kron(torch.fft.ifft2(dense_spectrum[i]).real, self.fourierft_B_list[adapter][i])
         delta_weight *= self.fourierft_scaling[adapter]
         return delta_weight
     
@@ -188,10 +199,44 @@ class KronFTLinear(nn.Module, KronFTLayer):
             for active_adapter in self.active_adapters:
                 if active_adapter not in self.fourierft_spectrum.keys():
                     continue
+                
+                adapter = activate_adapter
 
-                delta_w = self.get_delta_weight(active_adapter)
-                x = x.to(delta_w.dtype)
-                result = result + F.linear(x, delta_w)
+                scaling = self.fourierft_scaling[adapter]
+                spectrum = self.fourierft_spectrum[adapter]
+                gate_parameter = self.fourierft_gate[adapter]
+                indices = [ind.to(device) for ind in self.indices[adapter]]
+                gate_indices = self.gate_indices[adapter]
+                n_pack = self.fourierft_n_pack[adapter]
+
+                dense_spectrum = [torch.zeros(self.out_features // n_pack, self.in_features // n_pack, device=device, dtype=previous_dtype) for _ in range(n_pack)]
+
+
+                fourierft_gate = torch.zeros(n_pack, self.in_features, device=device, dtype=previous_dtype)
+                fourierft_gate[gate_indices[0, :], gate_indices[1, :]] = gate_parameter
+                fourierft_gate = torch.fft.ifft2(fourierft_gate).real
+
+                gate_scores = torch.einsum('bld,ed->ble', x, fourierft_gate)
+                gate_weights = F.softmax(gate_scores, dim=-1)  # (batch_size, in_features, n_pack)
+
+                output_list = [0] * n_pack
+                for i in range(n_pack):
+                    dense_spectrum[i][indices[i][0, :], indices[i][1, :]] = spectrum[i]
+                    delta_weight = scaling * torch.kron(torch.fft.ifft2(dense_spectrum[i]).real, self.fourierft_B_list[adapter][i])
+
+                    output = F.linear(x, delta_weight)
+                    output_list[i] = output
+
+
+                stacked_output = torch.stack(output_list, dim= 0)  # (n_pack, batch_size, seq_len, hidden_dim)
+                stacked_output = stacked_output.permute(1, 2, 0, 3) # (batch_size, seq_len, n_pack, hidden_dim)
+
+                gate_weights = gate_weights.unsqueeze(-1)
+
+                final_output = (stacked_output * gate_weights).sum(dim=2)
+
+                # final_output = torch.mean(final_output, dim= 0)
+                result = result + final_output
 
         result = result.to(previous_dtype)
         return result
