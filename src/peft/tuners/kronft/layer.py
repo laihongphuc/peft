@@ -191,6 +191,7 @@ class KronFTLinear(nn.Module, KronFTLayer):
 
     def forward(self, x: torch.Tensor, *args: Any, **kwargs: Any) -> torch.Tensor:
         previous_dtype = x.dtype
+        device = x.device
 
         if self.disable_adapters:
             if self.merged:
