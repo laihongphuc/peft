@@ -25,7 +25,7 @@ class KronFTLayer(BaseTunerLayer):
         self.gate_indices = {}
         self.fourierft_random_loc_seed = {}
         self.fourierft_B_list = nn.ParameterDict({})
-        self.fourierft_gate = nn.ParameterDice({})
+        self.fourierft_gate = nn.ParameterDict({})
         # Mark the weight as unmerged
         self._disable_adapters = False
         self.merged_adapters = []
