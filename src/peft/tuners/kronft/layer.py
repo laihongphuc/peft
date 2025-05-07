@@ -25,6 +25,7 @@ class KronFTLayer(BaseTunerLayer):
         self.gate_indices = {}
         self.fourierft_random_loc_seed = {}
         self.fourierft_B_list = nn.ParameterDict({})
+        self.fourierft_gate = nn.ParameterDice({})
         # Mark the weight as unmerged
         self._disable_adapters = False
         self.merged_adapters = []
@@ -75,6 +76,7 @@ class KronFTLayer(BaseTunerLayer):
             self.fourierft_B_list[adapter_name] = nn.ParameterList(
                 [nn.Parameter(torch.zeros(n_pack, n_pack), requires_grad=True) for _ in range(n_pack)]
             )
+
         # Gating mechanism
         n_gate_parameter = n_pack * self.in_features // 10
         gate_indices = torch.randperm(
@@ -84,6 +86,8 @@ class KronFTLayer(BaseTunerLayer):
         self.gate_indices[adapter_name] = torch.stack(
             [gate_indices // self.in_features, gate_indices % self.in_features], dim=0
         )
+        # Gating parameter 
+        self.fourierft_gate[adapter_name] = nn.Parameter(torch.randn(n_gate_parameter), requires_grad = True)
 
         if init_weights:
             self.reset_fourier_parameters(adapter_name)
